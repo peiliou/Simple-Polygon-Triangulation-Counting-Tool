@@ -348,11 +348,11 @@ const App = () => {
 				onMouseup={handleMouseUp}
 			>
 				<Layer>
-					<Text text='1. Hold Ctrl button to place vertices in a counter-clockwise order' x={5} y={10} />
+					<Text text='1. Hold Ctrl button to place vertices in COUNTER-CLOCKWISE order' x={5} y={10} />
 					<Text text='2. After a polygon is formed by enclosing its area, 
 					click "calculate" to calculate the number of different triangulations' x={5} y={30} />
-					<Text text='3. After completion, You can move any vertex by dragging its vertex number' x={5} y={50} />
-					<Text text='4. After completion, you can press ESC to undo the last line and add more vertices' x={5} y={70} />
+					<Text text='3. After completion, you can move any vertex by dragging its vertex number' x={5} y={50} />
+					<Text text='4. After completion, you can press "ESC" to undo the last line and add more vertices' x={5} y={70} />
 					<Text text='5. After completion, you can double-click on any vertex number to remove the corresponding vertex'
 						x={5} y={90} />
 					{
