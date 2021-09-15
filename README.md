@@ -3,6 +3,8 @@
 
 A web application tool that counts the number of triangulations of a simple polygon
 
+Online Demo: [CodeSandbox](https://g3k2i.csb.app/)
+
 ## Supported Operations
 
 * Placing and connecting vertices to form a simple polygon
@@ -16,6 +18,3 @@ To test it locally, run the following commands in a terminal:
 npm install
 npm start
 ```
-
-## Online Demo
-[CodeSandbox.io](https://codesandbox.io/s/g3k2i)
