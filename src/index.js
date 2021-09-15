@@ -119,8 +119,9 @@ const App = () => {
 				}
 
 				if (Konva.Util.haveIntersection(clientA, clientB)) {
-					lineAttr.points[2] = firstLine.x - lineAttr.x;
-					lineAttr.points[3] = firstLine.y - lineAttr.y;
+					let lastLine = shapeLines[shapeLines.length - 1];
+					lastLine.points[2] = firstLine.x - lastLine.x;
+					lastLine.points[3] = firstLine.y - lastLine.y;
 
 					setPolygon(shapeLines);
 					setShapeLines([]);
