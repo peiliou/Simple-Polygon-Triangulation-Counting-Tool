@@ -8,6 +8,7 @@ const App = () => {
 	const [shapeLines, setShapeLines] = React.useState([]);
 	const edges = React.useRef([]);
 	const dpTable = React.useRef(null);
+	const isClockwise = React.useRef(false);
 
 	const isDrawing = React.useRef(false);
 	const dataRef = React.useRef(null);
@@ -27,37 +28,51 @@ const App = () => {
 		dataRef.current.value = polygon ? JSON.stringify(polygon) : "";
 		edges.current = [];
 		if (polygon) {
+			let shapeLen = polygon.length;
 			polygon.forEach((line, index) => {
-				let shapeLen = polygon.length;
 				edges.current.push([line, polygon[(index + 1) % shapeLen]]);
 			});
+
+			isClockwise.current = !orientation();
+			console.log(isClockwise.current);
 		}
-		const addVertex = event => {
-			if (polygon && polygon.length > 1 && event.keyCode == 27) {
+		const escCallback = event => {
+			if (event.keyCode == 27) {
 				event.stopPropagation();
 				event.preventDefault();
 				console.log(polygon);
 				console.log(shapeLines);
-				setShapeLines(polygon);
-				let lastVertex = polygon[polygon.length - 1];
-				shapeLines.splice(shapeLines.length - 1, 1);
-				setPolygon(null);
-
-				let pos = lastVertex;
-				selection.current.x1 = pos.x;
-				selection.current.y1 = pos.y;
-				selection.current.x2 = pos.x;
-				selection.current.y2 = pos.y;
-				updateSelectionLine();
-				isDrawing.current = true;
-				return;
+				let lastVertex = null;
+				if (polygon && polygon.length > 1) {
+					setShapeLines(polygon);
+					lastVertex = polygon[polygon.length - 1];
+					shapeLines.splice(shapeLines.length - 1, 1);
+					setPolygon(null);
+				} else if (shapeLines.length > 0) {
+					lastVertex = shapeLines[shapeLines.length - 2];
+					shapeLines.splice(shapeLines.length - 2, 2);
+					if (shapeLines.length < 1) {
+						isDrawing.current = false;
+						setShapeLines([]);
+						return;
+					}
+				}
+				if (lastVertex) {
+					let pos = lastVertex;
+					selection.current.x1 = pos.x;
+					selection.current.y1 = pos.y;
+					selection.current.x2 = pos.x;
+					selection.current.y2 = pos.y;
+					updateSelectionLine();
+					isDrawing.current = true;
+				}
 			}
 		};
-		document.addEventListener("keydown", addVertex);
+		document.addEventListener("keydown", escCallback);
 		return () => {
-			document.removeEventListener("keydown", addVertex);
+			document.removeEventListener("keydown", escCallback);
 		};
-	}, [JSON.stringify(polygon)]);
+	}, [JSON.stringify(polygon), JSON.stringify(shapeLines)]);
 
 	const handleMouseDown = (e) => {
 		if (e.evt.ctrlKey) {
@@ -141,7 +156,8 @@ const App = () => {
 	};
 
 	/***code inside enclosed comments below is ported from 
-		ORourke's java code on his website: https://www.science.smith.edu/~jorourke/books/ftp.html ***/
+		ORourke's java code on his website: https://www.science.smith.edu/~jorourke/books/ftp.html, 
+		with some slight modifications.***/
 	//=========================================================================================
 	const AreaSign = (a, b, c) => {
 		/*let area2 = (b.x - a.x) * (c.y - a.y) -
@@ -258,14 +274,24 @@ const App = () => {
 		return true;
 	}
 
-	/*---------------------------------------------------------------------
-	*Returns TRUE iff the diagonal (a,b) is strictly internal to the 
-	*polygon in the neighborhood of the a endpoint.  
-	*/
+	/**
+	 * Identical to InCone but only works for clockwise oriented polygons
+	 * @param {Object} a the first vertex
+	 * @param {Object} b the second vertex
+	 * @returns true iff the diagonal (a,b) is strictly internal to the 
+	 * polygon in the neighborhood of the a endpoint. 
+	 */
 	const InCone = (a, b) => {
 		let lines = polygon;
-		let a1 = lines[(a.index + 1) % lines.length];
-		let a0 = lines[a.index == 0 ? lines.length - 1 : a.index - 1];
+		let a0, a1;
+
+		if (isClockwise.current) {
+			a0 = lines[(a.index + 1) % lines.length];
+			a1 = lines[a.index == 0 ? lines.length - 1 : a.index - 1];
+		} else {
+			a0 = lines[a.index == 0 ? lines.length - 1 : a.index - 1];
+			a1 = lines[(a.index + 1) % lines.length];
+		}
 
 		if (LeftOn(a, a1, a0))
 			return Left(a, b, a0)
@@ -276,8 +302,9 @@ const App = () => {
 	}
 
 
-	/*---------------------------------------------------------------------
-	 *Returns TRUE iff (a,b) is a proper internal diagonal.
+	/**
+	 * The Diagonal function but for use in clockwise oriented polygons
+	 * @returns Returns TRUE iff (a,b) is a proper internal diagonal.
 	 */
 	const Diagonal = (a, b) => {
 		return InCone(a, b) && InCone(b, a) && Diagonalie(a, b);
@@ -292,7 +319,28 @@ const App = () => {
 		let shapeLen = polygon.length;
 		//create a 2d array of zeroes: https://stackoverflow.com/questions/3689903/how-to-create-a-2d-array-of-zeroes-in-javascript
 		dpTable.current = Array(shapeLen).fill().map(() => Array(shapeLen).fill(0));
-		alert(recurFind(0, 1));
+
+		if (isClockwise.current) {
+			alert(recurFind(1, 0));
+		} else {
+			alert(recurFind(0, 1));
+		}
+	}
+	/**
+	 * Determines the orientation of the polygon
+	 * @returns true if counterclockwise, false otherwise
+	 */
+	const orientation = () => {
+		let vertices = polygon;
+		let minYVal = Number.MAX_SAFE_INTEGER;
+		let minIndex = 0;
+		vertices.forEach((vertex, index) => {
+			if (vertex.x < minYVal) {
+				minIndex = index;
+				minYVal = vertex.x;
+			}
+		})
+		return (Left(polygon[minIndex], polygon[(minIndex + 1) % polygon.length], polygon[(minIndex - 1 + polygon.length) % polygon.length]));
 	}
 
 	const isEdge = (a, b) => {
@@ -304,7 +352,11 @@ const App = () => {
 		setPolygon(JSON.parse(dataRef.current.value));
 	}
 
-
+	/**
+	 * Adapts the recursive algorithm to work for clockwise polygons
+	 * 
+	 * @returns the number of triangulations
+	 */
 	const recurFind = (i, j) => {
 		let table = dpTable.current;
 		if (table[i][j] > 0) return table[i][j];
@@ -336,6 +388,7 @@ const App = () => {
 		return table[i][j] = count;
 	}
 
+
 	return (
 		<div>
 			<input ref={dataRef} type="text" size="80"></input>
@@ -349,11 +402,11 @@ const App = () => {
 				onMouseup={handleMouseUp}
 			>
 				<Layer>
-					<Text text='1. Hold Ctrl button to place vertices in COUNTER-CLOCKWISE order' x={5} y={10} />
-					<Text text='2. After a polygon is formed by enclosing its area, 
-					click "calculate" to calculate the number of different triangulations' x={5} y={30} />
-					<Text text='3. After completion, you can move any vertex by dragging its vertex number' x={5} y={50} />
-					<Text text='4. After completion, you can press "ESC" to undo the last line and add more vertices' x={5} y={70} />
+					<Text text='1. Hold Ctrl button to place vertices' x={5} y={10} />
+					<Text text='2. You can press "ESC" to undo the previous edge at any time' x={5} y={30} />
+					<Text text='3. After a polygon is formed by enclosing its area, 
+					click "calculate" to calculate the number of different triangulations' x={5} y={50} />
+					<Text text='4. After completion, you can move any vertex by dragging its vertex number' x={5} y={70} />
 					<Text text='5. After completion, you can double-click on any vertex number to remove the corresponding vertex'
 						x={5} y={90} />
 					{
