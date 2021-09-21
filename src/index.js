@@ -378,7 +378,7 @@ const App = () => {
 			console.log(isEdge(end, vertex));
 			console.log(Diagonal(end, vertex));
 			console.log();
-			if ((Left(start, end, vertex)) &&
+			if (Left(start, end, vertex) &&
 				(isEdge(start, vertex) || Diagonal(start, vertex)) &&
 				(isEdge(end, vertex) || Diagonal(end, vertex))) {
 				count += recurFind(i, index) * recurFind(index, j);
