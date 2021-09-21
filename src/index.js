@@ -8,6 +8,7 @@ const App = () => {
 	const [shapeLines, setShapeLines] = React.useState([]);
 	const edges = React.useRef([]);
 	const dpTable = React.useRef(null);
+	const orientationVal = React.useRef(true);
 
 	const isDrawing = React.useRef(false);
 	const dataRef = React.useRef(null);
@@ -266,7 +267,16 @@ const App = () => {
 		let lines = polygon;
 		let a1 = lines[(a.index + 1) % lines.length];
 		let a0 = lines[a.index == 0 ? lines.length - 1 : a.index - 1];
+		if (!orientationVal.current) //clockwise case
+		{
+			
+			if (LeftOn(a1, a, a0))
+				return Left(b, a, a0)
+					&& Left(a, b, a1);
 
+			return !(LeftOn(b, a, a1)
+				&& LeftOn(a, b, a0));
+		}
 		if (LeftOn(a, a1, a0))
 			return Left(a, b, a0)
 				&& Left(b, a, a1);
@@ -274,26 +284,6 @@ const App = () => {
 		return !(LeftOn(a, b, a1)
 			&& LeftOn(b, a, a0));
 	}
-	/**
-	 * Identical to InCone but only works for clockwise oriented polygons
-	 * @param {Object} a the first vertex
-	 * @param {Object} b the second vertex
-	 * @returns true iff the diagonal (a,b) is strictly internal to the 
-	 * polygon in the neighborhood of the a endpoint. 
-	 */
-	const InConeClockwise =  (a, b) => {
-		let lines = polygon;
-		let a0 = lines[(a.index + 1) % lines.length];
-		let a1 = lines[a.index == 0 ? lines.length - 1 : a.index - 1];
-
-		if (LeftOn(a, a1, a0))
-			return Left(a, b, a0)
-				&& Left(b, a, a1);
-
-		return !(LeftOn(a, b, a1)
-			&& LeftOn(b, a, a0));
-	}
-
 
 	/*---------------------------------------------------------------------
 	 *Returns TRUE iff (a,b) is a proper internal diagonal.
@@ -302,13 +292,6 @@ const App = () => {
 		return InCone(a, b) && InCone(b, a) && Diagonalie(a, b);
 	}
 
-	/**
-	 * The Diagonal function but for use in clockwise oriented polygons
-	 * @returns Returns TRUE iff (a,b) is a proper internal diagonal.
-	 */
-	const DiagonalClockwise = (a,b) => {
-		return InConeClockwise(a,b) && InConeClockwise(b, a) && Diagonalie(a,b);
-	}
 
 	//=========================================================================================
 	const countTriangulations = () => {
@@ -319,14 +302,8 @@ const App = () => {
 		let shapeLen = polygon.length;
 		//create a 2d array of zeroes: https://stackoverflow.com/questions/3689903/how-to-create-a-2d-array-of-zeroes-in-javascript
 		dpTable.current = Array(shapeLen).fill().map(() => Array(shapeLen).fill(0));
-		if (orientation())
-		{
-			alert(recurFind(0, 1));
-		}
-		else
-		{
-			alert(recurFindClockwise(0,1));
-		}
+		orientationVal.current = orientation();
+		alert(recurFind(0, 1));
 	}
 
 	/**
@@ -378,45 +355,10 @@ const App = () => {
 			console.log(isEdge(end, vertex));
 			console.log(Diagonal(end, vertex));
 			console.log();
-			if (Left(start, end, vertex) &&
+			if ((Left(start, end, vertex) == orientationVal.current && !Collinear(start,end,vertex)) &&
 				(isEdge(start, vertex) || Diagonal(start, vertex)) &&
 				(isEdge(end, vertex) || Diagonal(end, vertex))) {
 				count += recurFind(i, index) * recurFind(index, j);
-			}
-		});
-		if (!count) count = 1;
-		return table[i][j] = count;
-	}
-	/**
-	 * Adapts the recursive algorithm to work for clockwise polygons
-	 * 
-	 * @returns the number of triangulations
-	 */
-	const recurFindClockwise = (i, j) => {
-		let table = dpTable.current;
-		if (table[i][j] > 0) return table[i][j];
-		let lines = polygon;
-		let start = lines[i];
-		let end = lines[j];
-		let count = 0;
-		lines.forEach((vertex, index) => {
-			if (i == index || j == index) return;
-			console.log(start.index);
-			console.log([start.x, start.y]);
-			console.log(end.index);
-			console.log([end.x, end.y]);
-			console.log(vertex.index);
-			console.log([vertex.x, vertex.y]);
-			console.log(Left(start, end, vertex));
-			console.log(isEdge(start, vertex));
-			console.log(DiagonalClockwise(start, vertex));
-			console.log(isEdge(end, vertex));
-			console.log(DiagonalClockwise(end, vertex));
-			console.log();
-			if (Left(end, start, vertex) &&
-				(isEdge(start, vertex) || DiagonalClockwise(start, vertex)) &&
-				(isEdge(end, vertex) || DiagonalClockwise(end, vertex))) {
-				count += recurFindClockwise(i, index) * recurFindClockwise(index, j);
 			}
 		});
 		if (!count) count = 1;
