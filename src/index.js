@@ -274,6 +274,25 @@ const App = () => {
 		return !(LeftOn(a, b, a1)
 			&& LeftOn(b, a, a0));
 	}
+	/**
+	 * Identical to InCone but only works for clockwise oriented polygons
+	 * @param {Object} a the first vertex
+	 * @param {Object} b the second vertex
+	 * @returns true iff the diagonal (a,b) is strictly internal to the 
+	 * polygon in the neighborhood of the a endpoint. 
+	 */
+	const InConeClockwise =  (a, b) => {
+		let lines = polygon;
+		let a0 = lines[(a.index + 1) % lines.length];
+		let a1 = lines[a.index == 0 ? lines.length - 1 : a.index - 1];
+
+		if (LeftOn(a, a1, a0))
+			return Left(a, b, a0)
+				&& Left(b, a, a1);
+
+		return !(LeftOn(a, b, a1)
+			&& LeftOn(b, a, a0));
+	}
 
 
 	/*---------------------------------------------------------------------
@@ -281,6 +300,14 @@ const App = () => {
 	 */
 	const Diagonal = (a, b) => {
 		return InCone(a, b) && InCone(b, a) && Diagonalie(a, b);
+	}
+
+	/**
+	 * The Diagonal function but for use in clockwise oriented polygons
+	 * @returns Returns TRUE iff (a,b) is a proper internal diagonal.
+	 */
+	const DiagonalClockwise = (a,b) => {
+		return InConeClockwise(a,b) && InConeClockwise(b, a) && Diagonalie(a,b);
 	}
 
 	//=========================================================================================
@@ -292,7 +319,32 @@ const App = () => {
 		let shapeLen = polygon.length;
 		//create a 2d array of zeroes: https://stackoverflow.com/questions/3689903/how-to-create-a-2d-array-of-zeroes-in-javascript
 		dpTable.current = Array(shapeLen).fill().map(() => Array(shapeLen).fill(0));
-		alert(recurFind(0, 1));
+		if (orientation())
+		{
+			alert(recurFind(0, 1));
+		}
+		else
+		{
+			alert(recurFindClockwise(0,1));
+		}
+	}
+
+	/**
+	 * Determines the orientation of the polygon
+	 * @returns true if counterclockwise, false otherwise
+	 */
+	const orientation = () => {
+		let vertices = polygon;
+		let minYVal = Number.MAX_SAFE_INTEGER;
+		let minIndex = 0;
+		vertices.forEach( (vertex, index) => {
+			if (vertex.x < minYVal)
+			{
+				minIndex = index;
+				minYVal = vertex.x;
+			}
+		})
+		return (Left(polygon[minIndex],polygon[(minIndex+1)%polygon.length],polygon[(minIndex-1+polygon.length)%polygon.length]));
 	}
 
 	const isEdge = (a, b) => {
@@ -335,7 +387,43 @@ const App = () => {
 		if (!count) count = 1;
 		return table[i][j] = count;
 	}
-
+	/**
+	 * Adapts the recursive algorithm to work for clockwise polygons
+	 * 
+	 * @returns the number of triangulations
+	 */
+	const recurFindClockwise = (i, j) => {
+		let table = dpTable.current;
+		if (table[i][j] > 0) return table[i][j];
+		let lines = polygon;
+		let start = lines[i];
+		let end = lines[j];
+		let count = 0;
+		lines.forEach((vertex, index) => {
+			if (i == index || j == index) return;
+			console.log(start.index);
+			console.log([start.x, start.y]);
+			console.log(end.index);
+			console.log([end.x, end.y]);
+			console.log(vertex.index);
+			console.log([vertex.x, vertex.y]);
+			console.log(Left(start, end, vertex));
+			console.log(isEdge(start, vertex));
+			console.log(DiagonalClockwise(start, vertex));
+			console.log(isEdge(end, vertex));
+			console.log(DiagonalClockwise(end, vertex));
+			console.log();
+			if (Left(end, start, vertex) &&
+				(isEdge(start, vertex) || DiagonalClockwise(start, vertex)) &&
+				(isEdge(end, vertex) || DiagonalClockwise(end, vertex))) {
+				count += recurFindClockwise(i, index) * recurFindClockwise(index, j);
+			}
+		});
+		if (!count) count = 1;
+		return table[i][j] = count;
+	}
+	
+	
 	return (
 		<div>
 			<input ref={dataRef} type="text" size="80"></input>
@@ -349,7 +437,7 @@ const App = () => {
 				onMouseup={handleMouseUp}
 			>
 				<Layer>
-					<Text text='1. Hold Ctrl button to place vertices in COUNTER-CLOCKWISE order' x={5} y={10} />
+					<Text text='1. Hold Ctrl button to place vertices' x={5} y={10} />
 					<Text text='2. After a polygon is formed by enclosing its area, 
 					click "calculate" to calculate the number of different triangulations' x={5} y={30} />
 					<Text text='3. After completion, you can move any vertex by dragging its vertex number' x={5} y={50} />
