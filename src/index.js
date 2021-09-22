@@ -477,8 +477,8 @@ const App = () => {
 									draggable
 									onDragMove={e => {
 										let shapeLines = JSON.parse(JSON.stringify(polygon));
-										line.x = e.target.x();
-										line.y = e.target.y();
+										line.x = parseInt(e.target.x());
+										line.y = parseInt(e.target.y());
 
 										let next = shapeLines[(index + 1) % shapeLines.length];
 										let prev = shapeLines[index == 0 ? shapeLines.length - 1 : index - 1];
