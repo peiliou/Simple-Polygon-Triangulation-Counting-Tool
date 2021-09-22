@@ -402,20 +402,26 @@ const App = () => {
 				onMouseup={handleMouseUp}
 			>
 				<Layer>
-					<Text text='1. Hold Ctrl button to place vertices' x={5} y={10} />
-					<Text text='2. You can press "ESC" to undo the previous edge at any time' x={5} y={30} />
-					<Text text='3. After a polygon is formed by enclosing its area, 
-					click "calculate" to calculate the number of different triangulations' x={5} y={50} />
-					<Text text='4. After completion, you can move any vertex by dragging its vertex number' x={5} y={70} />
-					<Text text='5. After completion, you can double-click on any vertex number to remove the corresponding vertex'
+					<Text text='1. Hold "Ctrl" button to place vertices' x={5} y={10} />
+					<Text text='2. You can press "Esc" to undo the previous edge at any time' x={5} y={30} />
+					<Text text='3. After a polygon is formed by enclosing its area, click "calculate" to calculate the number of different triangulations' x={5} y={50} />
+					<Text text='4. After a polygon is formed, you can move any vertex by dragging its vertex number' x={5} y={70} />
+					<Text text='5. After a polygon is formed, you can double-click on any vertex number to remove the corresponding vertex'
 						x={5} y={90} />
 					{
 						shapeLines.map((line, index) => {
 							return <React.Fragment key={index}>
 								<Line
-									name="shape"
+									name="line"
 									{...line}
 									tension={0.5}
+									lineCap="round"
+								/>
+								<Line
+									name="dot"
+									{...line}
+									points={[0, 0, 0, 0]}
+									stroke="red"
 									lineCap="round"
 								/>
 								<Text
@@ -423,6 +429,7 @@ const App = () => {
 									x={line.x}
 									y={line.y}
 									text={index}
+									fontSize={20}
 								/>
 							</React.Fragment>
 						})
@@ -442,6 +449,7 @@ const App = () => {
 								lines.forEach(line => {
 									context.lineTo(line.x + line.points[2], line.y + line.points[3]);
 								})
+								context.lineJoin = "round";
 
 								// (!) Konva specific method, it is very important
 								context.fillStrokeShape(shape);
@@ -450,52 +458,62 @@ const App = () => {
 					}
 					{
 						polygon ? polygon.map((line, index) => {
-							return <Text
-								key={index}
-								name="text"
-								x={line.x}
-								y={line.y}
-								text={line.index}
-								draggable
-								onDragMove={e => {
-									let shapeLines = JSON.parse(JSON.stringify(polygon));
-									line.x = e.target.x();
-									line.y = e.target.y();
+							return <React.Fragment>
+								<Line
+									name="dot"
+									{...line}
+									points={[0, 0, 0, 0]}
+									stroke="red"
+									tension={0.5}
+									lineCap="round"
+								/>
+								<Text
+									key={index}
+									name="text"
+									x={line.x}
+									y={line.y}
+									text={line.index}
+									fontSize={20}
+									draggable
+									onDragMove={e => {
+										let shapeLines = JSON.parse(JSON.stringify(polygon));
+										line.x = e.target.x();
+										line.y = e.target.y();
 
-									let next = shapeLines[(index + 1) % shapeLines.length];
-									let prev = shapeLines[index == 0 ? shapeLines.length - 1 : index - 1];
+										let next = shapeLines[(index + 1) % shapeLines.length];
+										let prev = shapeLines[index == 0 ? shapeLines.length - 1 : index - 1];
 
-									line.points[2] = next.x - line.x;
-									line.points[3] = next.y - line.y;
+										line.points[2] = next.x - line.x;
+										line.points[3] = next.y - line.y;
 
-									prev.points[2] = line.x - prev.x;
-									prev.points[3] = line.y - prev.y;
+										prev.points[2] = line.x - prev.x;
+										prev.points[3] = line.y - prev.y;
 
-									shapeLines[line.index] = line;
+										shapeLines[line.index] = line;
 
-									setPolygon(shapeLines);
-								}}
-								onDblClick={() => {
-									let shapeLines = JSON.parse(JSON.stringify(polygon));
-									if (shapeLines.length <= 3) return;
+										setPolygon(shapeLines);
+									}}
+									onDblClick={() => {
+										let shapeLines = JSON.parse(JSON.stringify(polygon));
+										if (shapeLines.length <= 3) return;
 
-									let next = shapeLines[(line.index + 1) % shapeLines.length];
-									let prev = shapeLines[line.index == 0 ? shapeLines.length - 1 : line.index - 1];
+										let next = shapeLines[(line.index + 1) % shapeLines.length];
+										let prev = shapeLines[line.index == 0 ? shapeLines.length - 1 : line.index - 1];
 
-									prev.points[2] = next.x - prev.x;
-									prev.points[3] = next.y - prev.y;
+										prev.points[2] = next.x - prev.x;
+										prev.points[3] = next.y - prev.y;
 
-									shapeLines.splice(line.index, 1);
+										shapeLines.splice(line.index, 1);
 
-									for (let cursor = next; cursor.index != 0;
-										cursor = shapeLines[(cursor.index + 1) % shapeLines.length]) {
-										cursor.index--;
+										for (let cursor = next; cursor.index != 0;
+											cursor = shapeLines[(cursor.index + 1) % shapeLines.length]) {
+											cursor.index--;
+										}
+
+										setPolygon(shapeLines);
 									}
-
-									setPolygon(shapeLines);
-								}
-								}
-							/>
+									}
+								/></React.Fragment>
 						}) : null
 					}
 				</Layer>
